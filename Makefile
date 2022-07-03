@@ -3,8 +3,8 @@ F_CPU=16000000L
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 CFLAGS=-std=c99 -Wall -g -Os -mmcu=${MCU} -DF_CPU=${F_CPU} -I. -Wl,-u,vfprintf -lprintf_flt -lm
-TARGET=main
-SRCS=main.c SSD1306.c i2c.c
+TARGET=selector
+SRCS=selector.c SSD1306.c i2c.c
 
 all:
 	${CC} ${CFLAGS} -o ${TARGET}.bin ${SRCS}
