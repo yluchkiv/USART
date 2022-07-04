@@ -11,14 +11,14 @@
 #define BRC ((F_CPU/16/BUAD)-1)  // = 103.16 // 0110 0111
 
 char scanned_message[BUFFER_SIZE+1]={'\0'}; // fill the buffer with null 
-int read_mode = 0; //  mode value
+//int read_mode = 0; //  mode value
 
 void display_init();
 void Serial_Init(void);
 unsigned char USART_Receive(void); //checks when the UDR0 has received all 8bits = 1 byte, then returns it
 bool receiveGGA(); //checks the
 int mode_selector(void); //mode selector, increases up to 4 when the button is pressed
-void print_msg(char final_message[]);
+void print_msg(char final_message[], int mode);
 
 int main()
 {
@@ -28,10 +28,10 @@ int main()
  
     while(1)
     {
-        mode_selector();
-        if(receiveGGA(read_mode)==true)
+        int mode = mode_selector();
+        if(receiveGGA(mode)==true)
         {
-            print_msg(scanned_message);
+            print_msg(scanned_message, mode);
         }
 
     }
@@ -60,7 +60,7 @@ unsigned char USART_Receive(void)
     return UDR0; // Get and return received data from buffer 
 }
 
-bool receiveGGA(int a)
+bool receiveGGA(int mode)
 {
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
@@ -68,23 +68,21 @@ bool receiveGGA(int a)
         if((i > 0)&&(scanned_message[i-1]=='\r') && (scanned_message[i]=='\n')) //detecting the end of NMEA message
         {
             scanned_message[i-1]='\0'; // ends the message 
-            switch(a)
+            switch(mode)
             {
                 case 1:
-                    if((a == 1)&&(strncmp(scanned_message,"$GPGGA",6)==0))
+                    if(strncmp(scanned_message,"$GPGGA",6)==0)  // appears only once
                     {
-                        OLED_SetCursor(3,0);
-                        OLED_Printf("Mode: %d",a);
                         return true;
                     } 
-                
+                    break;
+                    
                 case 2:
-                    if((a == 2)&&(strncmp(scanned_message,"$GPRMC",6)==0))
+                    if(strncmp(scanned_message,"$GPRMC",6)==0)
                     {
-                        OLED_SetCursor(3,0);
-                        OLED_Printf("Mode: %d",a);
                         return true;
                     } 
+                    break;
             }
             return false;
         }
@@ -94,21 +92,44 @@ bool receiveGGA(int a)
 
 int mode_selector(void)
 {
+    static int read_mode = 0;
+
+    static bool is_button_pressed = false;
+
     if (!(PINB & 0x02))  // 00000010 and 00000010 = 00000010   PRESSED
     {
-        read_mode = read_mode + 1;    
-        _delay_ms(300);
+        
 
-        if(read_mode > 2)
+        if(is_button_pressed == false)
         {
-            read_mode = 0;                  
-        } 
+            read_mode = read_mode + 1;    
+
+            if(read_mode > 2)
+            {
+            read_mode = 1;                  
+            } 
+
+
+            OLED_SetCursor(3,0);
+            OLED_Printf("Mode: %d",read_mode);
+            
+
+        }
+        is_button_pressed = true;
+
     }
+    else
+    {
+        is_button_pressed = false;
+    }
+
+
     return read_mode;       
 }
 
-void print_msg(char final_message[])
+void print_msg(char final_message[],int mode)
 {
+
     OLED_SetCursor(4,0);
     OLED_Printf("Data: %s", final_message);
 }
