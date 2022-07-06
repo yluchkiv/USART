@@ -12,9 +12,11 @@
 
 char scanned_message[BUFFER_SIZE+1]={'\0'}; // fill the buffer with null 
 //int read_mode = 0; //  mode value
-int flag = 1;
-int newCompValue = 0;
-int prevCompValue = 0;
+// int flag = 1;
+// int newCompValue = 0;
+// int prevCompValue = 0;
+int g_mode = 1;
+
 
 void display_init();
 void Serial_Init(void);
@@ -28,16 +30,19 @@ int main()
 {
     display_init();
     Serial_Init();
-    PORTB = 0x02; //set the pul up register to portb1 
+    //PORTB = 0x02; //set the pul up register to portb1 
         
-    PORTD = (1 << PORTD2); // pul up resistor 
+    PORTD = (1 << PORTD2); // pull up resistor 
+    EICRA = (1 << ISC01); //falling egde
     EIMSK = (1 << INT0); // interrupt on INT0
+    sei();
    
  
     while(1)
     {
-        int mode = mode_selector(); // mode selector -> simple button
-        //int mode = interrupt_selector(); // interrupt_selector -> external interrupt with debouncer
+       // int mode = mode_selector(); // mode selector -> simple button
+       // int mode = interrupt_selector(); // interrupt_selector -> external interrupt with debouncer
+        int mode = g_mode;
 
         if(receiveGGA(mode)==true)
         {
@@ -80,6 +85,7 @@ bool receiveGGA(int mode)
         if((i > 0)&&(scanned_message[i-1]=='\r') && (scanned_message[i]=='\n')) //detecting the end of NMEA message
         {
             scanned_message[i-1]='\0'; // ends the message 
+
             switch(mode)
             {
                 case 1:
@@ -155,39 +161,56 @@ int mode_selector(void)
 
 void print_msg(char final_message[],int mode)
 {
+    OLED_SetCursor(3,0);
+    OLED_Printf("Mode: %d", mode);
 
+    
     OLED_SetCursor(4,0);
     OLED_Printf("Data: %s", final_message);
 }
 
-int interrupt_selector(void)
-{
+// int interrupt_selector(void)
+// {
    
-    sei();
-    if (prevCompValue == newCompValue)
-    {
-        flag = flag;               
-    }
-    else
-    {
-        flag++;
-        _delay_ms(500);
+//     sei();
+//     if (prevCompValue == newCompValue)
+//     {
+//         flag = flag;               
+//     }
+//     else
+//     {
+//         flag++;
+//         _delay_ms(500);
 
-        if(flag > 4)
-        {
-            flag = 1;
-        }
-        prevCompValue=newCompValue;    
-        }
+//         if(flag > 4)
+//         {
+//             flag = 1;
+//         }
+//         prevCompValue=newCompValue;    
+//         }
 
-    OLED_SetCursor(1,0);
-    OLED_Printf("flag: %d",flag);  // Flag Value Control
-    return flag;
-}
+//     OLED_SetCursor(1,0);
+//     OLED_Printf("flag: %d",flag);  // Flag Value Control
+//     return flag;
+// }
 
 ISR(INT0_vect)
 {
-    newCompValue ++;  
+    //newCompValue ++;  
+
+    EIMSK &= ~(1 << INT0); // disable interrupt on INT0
+    unsigned char pin_state_at_start = PIND & 0b000000100;
+    _delay_us(200); // TODO: tuning required
+    unsigned char pin_state_at_end = PIND & 0b00000100;
+    if (pin_state_at_start == pin_state_at_end) {
+        g_mode++;
+        // pin state changed
+        if(g_mode>4)
+        {
+            g_mode=1;
+        }
+    }
+    EIMSK |= (1 << INT0); // enable interrupt on INT0
 }
 
 
