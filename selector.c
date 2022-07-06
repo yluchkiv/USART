@@ -12,6 +12,9 @@
 
 char scanned_message[BUFFER_SIZE+1]={'\0'}; // fill the buffer with null 
 //int read_mode = 0; //  mode value
+int flag = 1;
+int newCompValue = 0;
+int prevCompValue = 0;
 
 void display_init();
 void Serial_Init(void);
@@ -19,20 +22,29 @@ unsigned char USART_Receive(void); //checks when the UDR0 has received all 8bits
 bool receiveGGA(); //checks the
 int mode_selector(void); //mode selector, increases up to 4 when the button is pressed
 void print_msg(char final_message[], int mode);
+int interrupt_selector(void);
 
 int main()
 {
     display_init();
     Serial_Init();
     PORTB = 0x02; //set the pul up register to portb1 
+        
+    PORTD = (1 << PORTD2); // pul up resistor 
+    EIMSK = (1 << INT0); // interrupt on INT0
+   
  
     while(1)
     {
-        int mode = mode_selector();
+        int mode = mode_selector(); // mode selector -> simple button
+        //int mode = interrupt_selector(); // interrupt_selector -> external interrupt with debouncer
+
         if(receiveGGA(mode)==true)
         {
             print_msg(scanned_message, mode);
         }
+
+
 
     }
     return 0;
@@ -83,6 +95,20 @@ bool receiveGGA(int mode)
                         return true;
                     } 
                     break;
+
+                case 3:
+                    if(strncmp(scanned_message,"$GPGSA",6)==0)
+                    {
+                        return true;
+                    } 
+                    break;
+
+                case 4:
+                    if(strncmp(scanned_message,"$GPGSV",6)==0)
+                    {
+                        return true;
+                    } 
+                    break;
             }
             return false;
         }
@@ -104,7 +130,7 @@ int mode_selector(void)
         {
             read_mode = read_mode + 1;    
 
-            if(read_mode > 2)
+            if(read_mode > 4)
             {
             read_mode = 1;                  
             } 
@@ -133,5 +159,36 @@ void print_msg(char final_message[],int mode)
     OLED_SetCursor(4,0);
     OLED_Printf("Data: %s", final_message);
 }
+
+int interrupt_selector(void)
+{
+   
+    sei();
+    if (prevCompValue == newCompValue)
+    {
+        flag = flag;               
+    }
+    else
+    {
+        flag++;
+        _delay_ms(500);
+
+        if(flag > 4)
+        {
+            flag = 1;
+        }
+        prevCompValue=newCompValue;    
+        }
+
+    OLED_SetCursor(1,0);
+    OLED_Printf("flag: %d",flag);  // Flag Value Control
+    return flag;
+}
+
+ISR(INT0_vect)
+{
+    newCompValue ++;  
+}
+
 
 
