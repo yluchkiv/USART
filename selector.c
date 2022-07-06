@@ -16,7 +16,7 @@ void display_init();
 void Serial_Init(void);
 void interrupt_Init(void);
 unsigned char USART_Receive(void); //checks when the UDR0 has received all 8bits = 1 byte, then returns it
-bool receiveGGA(); //checks the
+bool receive_NMEA(); //checks the
 void print_msg(char final_message[], int mode);
 
 int main()
@@ -30,7 +30,7 @@ int main()
     while(1)
     {
         int mode = g_mode;
-        if(receiveGGA(mode)==true)
+        if(receive_NMEA(mode)==true)
         {
             print_msg(scanned_message, mode);
         }
@@ -42,7 +42,7 @@ void display_init()
 {
     OLED_Init();  //initialize the OLED
     OLED_SetCursor(0, 0);        //set the cursor position to (0 - move down, 0-move left)
-    OLED_Printf("Initialized");
+    OLED_Printf("NMEA Scan Initialized");
 }
 
 void Serial_Init(void)
@@ -65,7 +65,7 @@ unsigned char USART_Receive(void)
     return UDR0; // Get and return received data from buffer 
 }
 
-bool receiveGGA(int mode)
+bool receive_NMEA(int mode)
 {
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
@@ -112,8 +112,30 @@ bool receiveGGA(int mode)
 
 void print_msg(char final_message[],int mode)
 {
-    OLED_SetCursor(3,0);
-    OLED_Printf("Mode: %d", mode);   
+    switch(mode)
+    {
+        case 1:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GGA");
+        break;
+
+        case 2:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: RMC");
+        break;
+
+        case 3:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GSA");
+        break;
+
+        case 4:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GSV");
+        break;
+
+    } 
+
     OLED_SetCursor(4,0);
     OLED_Printf("Data: %s", final_message);
 }
