@@ -18,6 +18,7 @@ void interrupt_Init(void);
 unsigned char USART_Receive(void); //checks when the UDR0 has received all 8bits = 1 byte, then returns it
 bool receive_NMEA(); //checks the
 void print_msg(char final_message[], int mode);
+int hex2int(char low, char high);
 
 int main()
 {
@@ -79,7 +80,48 @@ bool receive_NMEA(int mode)
                 case 1:
                     if(strncmp(scanned_message,"$GPGGA",6)==0)  
                     {
-                        return true;
+                        char control_message[strlen(scanned_message)];
+                        int j;
+
+                        for ( j = 0; j <= strlen(scanned_message); j++)
+                        {
+                                control_message[j]=scanned_message[j+1];
+                                if(control_message[j]=='*')
+                                {
+                                    control_message[j]='\0';
+
+                                    OLED_SetCursor(5,0);
+                                    OLED_Printf("Received with msg: %c%c",scanned_message[j+2],scanned_message[j+3]);
+
+
+                                    int result=hex2int(scanned_message[j+2],scanned_message[j+3]);
+                                    
+                                    OLED_SetCursor(6,0);
+                                    OLED_Printf("Conversion   : %d",result);
+                                }
+
+                        }
+                        int checksum = 0;
+                        for(int k = 0; k <=strlen(control_message);k++)
+                        {
+                            checksum = checksum ^ control_message[k];
+                        }
+
+                        OLED_SetCursor(7,0);
+                        OLED_Printf("Calculated with ^: %x",checksum);
+
+                            
+                        OLED_SetCursor(2,0);
+                        OLED_Printf("%s",control_message);
+
+
+
+
+                            return true;
+                
+                    
+                        
+                        
                     } 
                     break;
                     
@@ -110,34 +152,39 @@ bool receive_NMEA(int mode)
     return false;
 }     
 
+int hex2int(char low, char high)
+{
+    return ((int)(high - '0')) * 16 + (int)(low - '0');
+}
+
 void print_msg(char final_message[],int mode)
 {
-    switch(mode)
-    {
-        case 1:
-        OLED_SetCursor(2,0);
-        OLED_Printf("Message selected: GGA");
-        break;
+    // switch(mode)
+    // {
+    //     case 1:
+    //     OLED_SetCursor(2,0);
+    //     OLED_Printf("Message selected: GGA");
+    //     break;
 
-        case 2:
-        OLED_SetCursor(2,0);
-        OLED_Printf("Message selected: RMC");
-        break;
+    //     case 2:
+    //     OLED_SetCursor(2,0);
+    //     OLED_Printf("Message selected: RMC");
+    //     break;
 
-        case 3:
-        OLED_SetCursor(2,0);
-        OLED_Printf("Message selected: GSA");
-        break;
+    //     case 3:
+    //     OLED_SetCursor(2,0);
+    //     OLED_Printf("Message selected: GSA");
+    //     break;
 
-        case 4:
-        OLED_SetCursor(2,0);
-        OLED_Printf("Message selected: GSV");
-        break;
+    //     case 4:
+    //     OLED_SetCursor(2,0);
+    //     OLED_Printf("Message selected: GSV");
+    //     break;
 
-    } 
+    // } 
 
-    OLED_SetCursor(4,0);
-    OLED_Printf("Data: %s", final_message);
+    // OLED_SetCursor(4,0);
+    // OLED_Printf("Data: %s", final_message);
 }
 
 ISR(INT0_vect)
