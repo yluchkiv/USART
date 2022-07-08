@@ -2,6 +2,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <string.h>
+#include <stdlib.h>
 #include "i2c.h"
 #include "SSD1306.h"
 #include <stdbool.h>
@@ -80,48 +81,50 @@ bool receive_NMEA(int mode)
                 case 1:
                     if(strncmp(scanned_message,"$GPGGA",6)==0)  
                     {
-                        char control_message[strlen(scanned_message)];
-                        int j;
+                        // char control_message[strlen(scanned_message)];
+                        // int j;
 
-                        for ( j = 0; j <= strlen(scanned_message); j++)
-                        {
-                                control_message[j]=scanned_message[j+1];
-                                if(control_message[j]=='*')
-                                {
-                                    control_message[j]='\0';
+                        // for ( j = 0; j <= strlen(scanned_message); j++)
+                        // {
+                        //         control_message[j]=scanned_message[j+1];
+                        //         if(control_message[j]=='*')
+                        //         {
+                        //             control_message[j]='\0'; //msg w/o '$' and up to '8' for crc operation
 
-                                    OLED_SetCursor(5,0);
-                                    OLED_Printf("Received with msg: %c%c",scanned_message[j+2],scanned_message[j+3]);
-
-
-                                    int result=hex2int(scanned_message[j+2],scanned_message[j+3]);
+                                    // OLED_SetCursor(5,0);
+                                    // OLED_Printf("Received with msg: %c%c",scanned_message[j+2],scanned_message[j+3]);
                                     
-                                    OLED_SetCursor(6,0);
-                                    OLED_Printf("Conversion   : %d",result);
-                                }
+                                    // int a = (int)scanned_message[j+2];
+                                    // int b = (int)scanned_message[j+3];
+   
+                                    // int concat(int a,int b)
+                                    // {
+                                    //     char s1[20];
+                                    //     char s2[20];
+                                    //     // Convert both the integers to string
+                                    //     sprintf(s1, "%d", a);
+                                    //     sprintf(s2, "%d", b);
+ 
+                                    //     strcat(s1, s2); // Concatenate both strings
+                                    //     int c = atoi(s1);     // Convert the concatenated string to integer                       
+                                    //     return c; // return the formed integer
+                                    // }
+                                    
+                                    // OLED_SetCursor(6,0);
+                                    // OLED_Printf("Conversion: %d",concat(a,b));
+                                    //}
 
-                        }
-                        int checksum = 0;
-                        for(int k = 0; k <=strlen(control_message);k++)
-                        {
-                            checksum = checksum ^ control_message[k];
-                        }
+                        // }
+                        // int checksum = 0;
+                        // for(int k = 0; k <=strlen(control_message);k++)
+                        // {
+                        //     checksum = checksum ^ control_message[k];
+                        // }
 
-                        OLED_SetCursor(7,0);
-                        OLED_Printf("Calculated with ^: %x",checksum);
+                        // OLED_SetCursor(7,0);
+                        // OLED_Printf("Calculated with ^: %x",checksum);
 
-                            
-                        OLED_SetCursor(2,0);
-                        OLED_Printf("%s",control_message);
-
-
-
-
-                            return true;
-                
-                    
-                        
-                        
+                        return true;      
                     } 
                     break;
                     
@@ -152,39 +155,35 @@ bool receive_NMEA(int mode)
     return false;
 }     
 
-int hex2int(char low, char high)
-{
-    return ((int)(high - '0')) * 16 + (int)(low - '0');
-}
 
 void print_msg(char final_message[],int mode)
 {
-    // switch(mode)
-    // {
-    //     case 1:
-    //     OLED_SetCursor(2,0);
-    //     OLED_Printf("Message selected: GGA");
-    //     break;
+    switch(mode)
+    {
+        case 1:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GGA");
+        break;
 
-    //     case 2:
-    //     OLED_SetCursor(2,0);
-    //     OLED_Printf("Message selected: RMC");
-    //     break;
+        case 2:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: RMC");
+        break;
 
-    //     case 3:
-    //     OLED_SetCursor(2,0);
-    //     OLED_Printf("Message selected: GSA");
-    //     break;
+        case 3:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GSA");
+        break;
 
-    //     case 4:
-    //     OLED_SetCursor(2,0);
-    //     OLED_Printf("Message selected: GSV");
-    //     break;
+        case 4:
+        OLED_SetCursor(2,0);
+        OLED_Printf("Message selected: GSV");
+        break;
 
-    // } 
+    } 
 
-    // OLED_SetCursor(4,0);
-    // OLED_Printf("Data: %s", final_message);
+    OLED_SetCursor(4,0);
+    OLED_Printf("Data: %s", final_message);
 }
 
 ISR(INT0_vect)
