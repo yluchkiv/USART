@@ -12,6 +12,7 @@
 
 char scanned_message[BUFFER_SIZE+1]={'\0'}; // fill the buffer with null 
 int g_mode = 1;
+int byte_checksum;
 
 void display_init();
 void Serial_Init(void);
@@ -19,7 +20,8 @@ void interrupt_Init(void);
 unsigned char USART_Receive(void); //checks when the UDR0 has received all 8bits = 1 byte, then returns it
 bool receive_NMEA(); //checks the
 void print_msg(char final_message[], int mode);
-int hex2int(char low, char high);
+char from_hex(char a) ;
+bool checksum_checker(void);
 
 int main()
 {
@@ -81,50 +83,7 @@ bool receive_NMEA(int mode)
                 case 1:
                     if(strncmp(scanned_message,"$GPGGA",6)==0)  
                     {
-                        // char control_message[strlen(scanned_message)];
-                        // int j;
-
-                        // for ( j = 0; j <= strlen(scanned_message); j++)
-                        // {
-                        //         control_message[j]=scanned_message[j+1];
-                        //         if(control_message[j]=='*')
-                        //         {
-                        //             control_message[j]='\0'; //msg w/o '$' and up to '8' for crc operation
-
-                                    // OLED_SetCursor(5,0);
-                                    // OLED_Printf("Received with msg: %c%c",scanned_message[j+2],scanned_message[j+3]);
-                                    
-                                    // int a = (int)scanned_message[j+2];
-                                    // int b = (int)scanned_message[j+3];
-   
-                                    // int concat(int a,int b)
-                                    // {
-                                    //     char s1[20];
-                                    //     char s2[20];
-                                    //     // Convert both the integers to string
-                                    //     sprintf(s1, "%d", a);
-                                    //     sprintf(s2, "%d", b);
- 
-                                    //     strcat(s1, s2); // Concatenate both strings
-                                    //     int c = atoi(s1);     // Convert the concatenated string to integer                       
-                                    //     return c; // return the formed integer
-                                    // }
-                                    
-                                    // OLED_SetCursor(6,0);
-                                    // OLED_Printf("Conversion: %d",concat(a,b));
-                                    //}
-
-                        // }
-                        // int checksum = 0;
-                        // for(int k = 0; k <=strlen(control_message);k++)
-                        // {
-                        //     checksum = checksum ^ control_message[k];
-                        // }
-
-                        // OLED_SetCursor(7,0);
-                        // OLED_Printf("Calculated with ^: %x",checksum);
-
-                        return true;      
+                        return checksum_checker();                                        
                     } 
                     break;
                     
@@ -153,7 +112,17 @@ bool receive_NMEA(int mode)
         }
     }
     return false;
-}     
+}   
+
+char from_hex(char a) 
+{
+  if (a >= 'A' && a <= 'F')
+    return a - 'A' + 10;
+  else if (a >= 'a' && a <= 'f')
+    return a - 'a' + 10;
+  else
+    return a - '0';
+}
 
 
 void print_msg(char final_message[],int mode)
@@ -184,6 +153,48 @@ void print_msg(char final_message[],int mode)
 
     OLED_SetCursor(4,0);
     OLED_Printf("Data: %s", final_message);
+}
+
+bool checksum_checker(void)
+{
+    char control_message[strlen(scanned_message)];
+
+    for (int j = 0; j <= strlen(scanned_message); j++)
+    {
+        control_message[j]=scanned_message[j+1];
+
+        if(control_message[j]=='*')
+        {
+            control_message[j]='\0'; //msg w/o '$' and up to '8' for crc operation
+                                    
+            byte_checksum = 16 * from_hex(scanned_message[j+2]) + from_hex(scanned_message[j+3]); // ERROR in j+1 , needs J+2
+
+        }
+    }
+
+    int checksum = 0;
+    for(int k = 0; k <=strlen(control_message);k++)
+    {
+        checksum = checksum ^ control_message[k];
+    }   
+
+    if(checksum==byte_checksum)
+    {
+        OLED_SetCursor(3,0);
+        OLED_Printf("MSG Checksum OK");
+        return true; 
+    }
+
+    else
+    {
+        OLED_SetCursor(3,0);
+        OLED_Printf("MSG Checksum ERROR");
+        return false;
+
+    }                                        
+
+         
+
 }
 
 ISR(INT0_vect)
